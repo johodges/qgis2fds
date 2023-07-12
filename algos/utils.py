@@ -152,8 +152,8 @@ def wcsToRaster(rlayer, extent, out_file):
     x_res = (rlayer_full_extent.xMaximum()-rlayer_full_extent.xMinimum())/rlayer.width()
     y_res = (rlayer_full_extent.yMaximum()-rlayer_full_extent.yMinimum())/rlayer.height()
     
-    width = (extent.xMaximum()-extent.xMinimum())/x_res
-    height = (extent.yMaximum()-extent.yMinimum())/y_res
+    width = int((extent.xMaximum()-extent.xMinimum())/x_res)
+    height = int((extent.yMaximum()-extent.yMinimum())/y_res)
     
     ### Raster layer from WCS
     if not rlayer.isValid():
