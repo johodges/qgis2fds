@@ -629,13 +629,13 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         project.writeEntry("qgis2fds", "dem_layer", parameters.get("dem_layer"))
         
         # Convert extents for land use
-        # Download WCS data and save as a geoTiff for processing with gdal
         if landuse_layer is not None:
-            algos.wcsToRaster(landuse_layer, fds_terrain_extent_terrain, os.path.join(project_path,chid + '_LAND_CLIPPED.tif'))
-            landuse_layer = QgsRasterLayer(os.path.join(project_path,chid + '_LAND_CLIPPED.tif'), "land_use_layer")
-        
-        if addIntermediateLayersToQgis:
-            QgsProject.instance().addMapLayer(landuse_layer)
+            if landuse_layer.providerType() == 'wcs':
+                # Download WCS data and save as a geoTiff for processing with gdal
+                algos.wcsToRaster(landuse_layer, fds_terrain_extent_terrain, os.path.join(project_path,chid + '_LAND_CLIPPED.tif'))
+                landuse_layer = QgsRasterLayer(os.path.join(project_path,chid + '_LAND_CLIPPED.tif'), "land_use_layer")
+                if addIntermediateLayersToQgis:
+                    QgsProject.instance().addMapLayer(landuse_layer)
         
         # Get parameter: fire_layer (optional)
 
@@ -686,10 +686,12 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         fds_dem_extent_dem = utm_to_dem_transform.transformBoundingBox(fds_texture_extent_utm)
         fds_dem_extent_utm = dem_to_utm_transform.transformBoundingBox(fds_dem_extent_dem)
         
-        # Download WCS data and save as a geoTiff for processing with gdal
-        algos.wcsToRaster(dem_layer, fds_dem_extent_dem, os.path.join(project_path, chid + '_DEM_CLIPPED.tif'))
+        if dem_layer.providerType() == 'wcs':
+            # Download WCS data and save as a geoTiff for processing with gdal
+            algos.wcsToRaster(dem_layer, fds_dem_extent_dem, os.path.join(project_path, chid + '_DEM_CLIPPED.tif'))
+            dem_layer = os.path.join(project_path,chid + '_DEM_CLIPPED.tif')
         outputs['rotated_dem_layer'] = algos.get_reprojected_raster_layer(context,feedback,
-            os.path.join(project_path,chid + '_DEM_CLIPPED.tif'), utm_crs, pixel_size, os.path.join(project_path, chid + '_DEM_CLIPPED_UTM.tif'),)
+            dem_layer, utm_crs, pixel_size, os.path.join(project_path, chid + '_DEM_CLIPPED_UTM.tif'),)
         
         # Fill empty values in DEM layer with interpolation
         outputs['filled_dem_layer'] = algos.fill_dem_nan(
