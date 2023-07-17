@@ -10,7 +10,7 @@ __revision__ = "$Format:%H$"  # replaced with git SHA1
 from qgis.core import QgsProcessingProvider
 from .qgis2fds_algorithm import qgis2fdsAlgorithm
 from .extract_server_layer import extractServerLayerAlgorithm
-
+from .debug_algorithms import debug_terrain
 
 class qgis2fdsProvider(QgsProcessingProvider):
     def __init__(self):
@@ -31,6 +31,7 @@ class qgis2fdsProvider(QgsProcessingProvider):
         """
         self.addAlgorithm(qgis2fdsAlgorithm())
         self.addAlgorithm(extractServerLayerAlgorithm())
+        self.addAlgorithm(debug_terrain())
 
     def id(self):
         """
