@@ -254,22 +254,26 @@ class debug_terrain(QgsProcessingAlgorithm):
         if not extent:
             raise QgsProcessingException(self.invalidSourceError(parameters, "extent"))
         project.writeEntry("debug_terrain", "extent", parameters["extent"])  # as str
-
-        wgs84_crs = QgsCoordinateReferenceSystem("EPSG:4326")
-        wgs84_extent = self.parameterAsExtent(parameters, "extent", context, crs=wgs84_crs)
-
+        
         # Get parameter: origin
         
+        extent_origin = QgsPoint(extent.center())
+        extent_crs = sampling_layer.crs()
+        
+        wgs84_crs = QgsCoordinateReferenceSystem("EPSG:4326")
+        extent_to_wgs84 = QgsCoordinateTransform(extent_crs, wgs84_crs, project)
+        wgs84_extent = extent_to_wgs84.transformBoundingBox(extent)
         wgs84_origin = QgsPoint(wgs84_extent.center())
+        #wgs84_extent = self.parameterAsExtent(parameters, "extent", context, crs=wgs84_crs)
         
         # Get applicable UTM crs, then UTM origin and extent
 
         utm_epsg = utils.lonlat_to_epsg(lon=wgs84_origin.x(), lat=wgs84_origin.y())
         utm_crs = QgsCoordinateReferenceSystem(utm_epsg)
 
-        wgs84_to_utm_tr = QgsCoordinateTransform(wgs84_crs, utm_crs, project)
-        utm_origin = wgs84_origin.clone()
-        utm_origin.transform(wgs84_to_utm_tr)
+        extent_to_utm_tr = QgsCoordinateTransform(extent_crs, utm_crs, project)
+        utm_origin = extent_origin.clone()
+        utm_origin.transform(extent_to_utm_tr)
         
         export_obst = self.parameterAsBool(parameters, "export_obst", context)
         
