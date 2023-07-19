@@ -602,6 +602,11 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         else:
             fds_texture_extent_utm = fds_terrain_extent_utm
         
+        feedback.pushInfo(f"utm_extent {utm_extent}")
+        feedback.pushInfo(f"fds_terrain_extent_terrain {fds_terrain_extent_terrain}")
+        feedback.pushInfo(f"fds_terrain_extent_utm {fds_terrain_extent_utm}")
+        feedback.pushInfo(f"fds_texture_extent_tex {fds_texture_extent_tex}")
+        feedback.pushInfo(f"fds_texture_extent_utm {fds_texture_extent_utm}")
         # Get DEVCs layer  # FIXME implement
         # utm_devc_layer = None
         # if devc_layer:
@@ -686,6 +691,9 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         fds_dem_extent_dem = utm_to_dem_transform.transformBoundingBox(fds_texture_extent_utm)
         fds_dem_extent_utm = dem_to_utm_transform.transformBoundingBox(fds_dem_extent_dem)
         
+        feedback.pushInfo(f"fds_dem_extent_dem  {fds_dem_extent_dem}")
+        feedback.pushInfo(f"fds_dem_extent_utm  {fds_dem_extent_utm}")
+        
         if dem_layer.providerType() == 'wcs':
             # Download WCS data and save as a geoTiff for processing with gdal
             algos.wcsToRaster(dem_layer, fds_dem_extent_dem, os.path.join(project_path, chid + '_DEM_CLIPPED.tif'))
@@ -724,6 +732,13 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
         
+        print("BEFORE SAMPLING FUNCTION")
+        for layer_id in context.temporaryLayerStore().mapLayers():
+            layer = context.getMapLayer(layer_id)
+            name = layer.name()
+            if ('Draped' in name) or ('Grid' in name) or ('Sampled' in name):
+                print(name)
+        
         # Get the sampling grid
         outputs["sampling_layer"] = algos.get_sampling_point_grid_layer(
             context,
@@ -737,6 +752,13 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             extent_crs=utm_crs,
             # output=parameters["sampling_layer"],  # DEBUG
         )
+        
+        print("AFTER SAMPLING FUNCTION")
+        for layer_id in context.temporaryLayerStore().mapLayers():
+            layer = context.getMapLayer(layer_id)
+            name = layer.name()
+            if ('Draped' in name) or ('Grid' in name) or ('Sampled' in name):
+                print(name)
 
         if feedback.isCanceled():
             return {}
