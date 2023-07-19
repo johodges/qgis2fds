@@ -22,7 +22,11 @@ def get_pixel_center_aligned_grid_layer(
 ):
     text = f"Get center aligned sampling grid..."
     feedback.pushInfo(text)
-
+    
+    feedback.pushInfo(f"INPUTS TO GET_PIXEL_ALIGNED_EXTENT")
+    feedback.pushInfo(f"EXTENT {extent}")
+    feedback.pushInfo(f"EXTENT_CRS {extent_crs}")
+    
     aligned_extent = get_pixel_aligned_extent(
         context,
         feedback,
@@ -32,7 +36,13 @@ def get_pixel_center_aligned_grid_layer(
         to_centers=True,
         larger=larger,
     )
-
+    feedback.pushInfo(f"OUTPUTS FROM GET_PIXEL_ALIGNED_EXTENT")
+    feedback.pushInfo(f"ALIGNED_EXTENT {aligned_extent}")
+    
+    feedback.pushInfo("INPUTS TO GET_GRID_LAYER")
+    feedback.pushInfo(f"RASTER_LAYER_CRS {raster_layer.crs()}")
+    feedback.pushInfo(f"RASTER_LAYER_RASTERUNITSPERPIXELX {raster_layer.rasterUnitsPerPixelX()}")
+    feedback.pushInfo(f"RASTER_LAYER_RASTERUNITSPERPIXELY {raster_layer.rasterUnitsPerPixelY()}")
     if feedback.isCanceled():
         return {}
 
