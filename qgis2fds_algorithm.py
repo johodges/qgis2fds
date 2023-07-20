@@ -601,6 +601,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             fds_texture_extent_utm = tex_to_utm_transform.transformBoundingBox(fds_texture_extent_tex)
         else:
             fds_texture_extent_utm = fds_terrain_extent_utm
+            fds_texture_extent_tex = None
         
         feedback.pushInfo(f"utm_extent {utm_extent}")
         feedback.pushInfo(f"fds_terrain_extent_terrain {fds_terrain_extent_terrain}")
