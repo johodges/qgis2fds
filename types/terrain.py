@@ -34,6 +34,7 @@ class GEOMTerrain:
 
         self._filename = f"{name}_terrain.bingeom"
         self._filepath = os.path.join(path, self._filename)
+        self.path = path
 
         self._m = None
         self.min_z = 0.0
@@ -130,6 +131,7 @@ class GEOMTerrain:
                     self.feedback.setProgress(int(i / nfeatures * 100))
 
         # Get point column length
+        '''
         column_len = 2
         p0, p1 = m[0, :2], m[1, :2]
         v0 = p1 - p0
@@ -138,10 +140,16 @@ class GEOMTerrain:
             if abs(np.dot(v0, v1) / np.linalg.norm(v0) / np.linalg.norm(v1)) < 0.9:
                 break  # end of point column
             column_len += 1
-
+        '''
+        row_len = np.where(m[1:,1] > m[:-1,1])[0].shape[0] + 1
+        column_len = int(nfeatures / row_len)
         # Split matrix into columns list, get np array, and transpose
         # Now points are by row
         m = np.array(np.split(m, nfeatures // column_len)).transpose(1, 0, 2)
+        np.savetxt(os.path.join(self.path, 'debug_x_values.csv'), m[:,:,0], delimiter=',')
+        np.savetxt(os.path.join(self.path, 'debug_y_values.csv'), m[:,:,1], delimiter=',')
+        np.savetxt(os.path.join(self.path, 'debug_z_values.csv'), m[:,:,2], delimiter=',')
+        np.savetxt(os.path.join(self.path, 'debug_t_values.csv'), m[:,:,3], delimiter=',')
         # Check
         if m.shape[0] < 3 or m.shape[1] < 3:
             raise QgsProcessingException(
