@@ -1,5 +1,6 @@
 import processing
 import os
+import datetime
 from qgis.core import (
     QgsProcessing,
     QgsRectangle,
@@ -10,7 +11,30 @@ from qgis.core import (
     QgsRasterProjector,
     QgsRasterFileWriter
 )
+
+def tic():
+    ''' tic: This function stores the current time to the microsecond level
     
+        OUTPUTS:
+          old_time: float containing the current time to the microsecond level
+    '''
+    old_time = datetime.datetime.now().timestamp()
+    #old_time = datetime.datetime.now().time().hour*3600+datetime.datetime.now().time().minute*60+datetime.datetime.now().time().second+datetime.datetime.now().time().microsecond/1000000
+    return old_time
+
+def toc(old_time):
+    ''' toc: This function returns the amount of time since the supplied time
+    
+        INPUTS:
+          old_time: float containing previous time
+        
+        OUTPUTS:
+          dur: float containing time since previous time
+    '''
+    new_time = tic()
+    dur = new_time-old_time
+    return dur, new_time
+
 def get_pixel_center_aligned_grid_layer(
     context,
     feedback,
