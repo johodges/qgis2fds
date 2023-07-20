@@ -237,6 +237,10 @@ class GEOMTerrain:
         m = self._m
         ncenters = m.shape[0] * m.shape[1]
         partial_progress = ncenters // 100 or 1
+        np.savetxt(os.path.join(self.path, 'debug_gc_x_values.csv'), m[:,:,0], delimiter=',')
+        np.savetxt(os.path.join(self.path, 'debug_gc_y_values.csv'), m[:,:,1], delimiter=',')
+        np.savetxt(os.path.join(self.path, 'debug_gc_z_values.csv'), m[:,:,2], delimiter=',')
+        np.savetxt(os.path.join(self.path, 'debug_gc_t_values.csv'), m[:,:,3], delimiter=',')
         # Skip last row and last col
         for ip, idxs in enumerate(np.ndindex(m.shape[0] - 1, m.shape[1] - 1)):
             i, j = idxs
