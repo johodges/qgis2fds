@@ -94,8 +94,10 @@ class GEOMTerrain:
         # Fill the array with point coordinates, points are listed by column
         # calc min and max z
         min_z, max_z = 1e6, -1e6
+        txt = 'ind,x,y,z\n'
         for i, f in enumerate(self.sampling_layer.getFeatures()):
             g = f.geometry().get()  # QgsPoint
+            txt = txt + '%d,%0.10f,%0.10f,%0.10f\n'%(i, g.x()-ox,g.y()-oy,g.z())
             z = g.z()
             if z > max_z:
                 max_z = z
@@ -109,8 +111,11 @@ class GEOMTerrain:
             )
             if i % partial_progress == 0:
                 self.feedback.setProgress(int(i / nfeatures * 100))
+        with open(os.path.join(self.path, 'sampling_layer_extract.csv'),'w') as f:
+            f.write(txt)
         self.max_z, self.min_z = max_z, min_z
-
+        self.feedback.pushInfo(f"nfeatures {nfeatures}")
+        self.feedback.pushInfo(f"nfeatures_loop1 {i}")
         # Fill the array with the landuse
         if self.landuse_layer:
             landuse_idx = self.sampling_layer.fields().indexOf("landuse1")
@@ -119,7 +124,7 @@ class GEOMTerrain:
                 m[i][3] = a[landuse_idx] or 0
                 if i % partial_progress == 0:
                     self.feedback.setProgress(int(i / nfeatures * 100))
-
+        self.feedback.pushInfo(f"nfeatures_loop2 {i}")
         # Fill the array with the fire layer bcs
         if self.fire_layer:
             bc_idx = self.sampling_layer.fields().indexOf("bc")
@@ -141,6 +146,10 @@ class GEOMTerrain:
                 break  # end of point column
             column_len += 1
         '''
+        np.savetxt(os.path.join(self.path, 'debug_linear_x_values.csv'), m[:,0], delimiter=',')
+        np.savetxt(os.path.join(self.path, 'debug_linear_y_values.csv'), m[:,1], delimiter=',')
+        np.savetxt(os.path.join(self.path, 'debug_linear_z_values.csv'), m[:,2], delimiter=',')
+        np.savetxt(os.path.join(self.path, 'debug_linear_t_values.csv'), m[:,3], delimiter=',')
         row_len = np.where(m[1:,1] > m[:-1,1])[0].shape[0] + 1
         column_len = int(nfeatures / row_len)
         # Split matrix into columns list, get np array, and transpose

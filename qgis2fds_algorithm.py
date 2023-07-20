@@ -786,7 +786,42 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
 
         if feedback.isCanceled():
             return {}
-
+        
+        if DEBUG:
+            for layer_id in context.temporaryLayerStore().mapLayers():
+                layer = context.getMapLayer(layer_id)
+                name = layer.name()
+                if chid in name:
+                    outname = os.path.join(project_path,"debug_" + name)
+                else:
+                    outname = os.path.join(project_path,"debug_" + chid + "_" + name)
+                if type(layer) is QgsRasterLayer:
+                    outname = outname + '.tif'
+                    renderer = layer.renderer()
+                    provider = layer.dataProvider()
+                    pipe = QgsRasterPipe()
+                    projector = QgsRasterProjector()
+                    projector.setCrs(layer.crs(), layer.crs())
+                    print("TRYING TO WRITE %s"%(outname))
+                    if not pipe.set(provider.clone()):
+                        print("Cannot set pipe provider")
+                    if not pipe.insert(2, projector):
+                        print("Cannot set pipe projector")
+                    file_writer = QgsRasterFileWriter(outname)
+                    file_writer.Mode(1)
+                    width = layer.width()
+                    height = layer.height()
+                    layer_extent = layer.extent()
+                    layer_crs = layer.crs()
+                    
+                    error = file_writer.writeRaster(pipe, width, height, layer_extent, layer_crs)
+                else:
+                    outname = outname + '.gpkg'
+                    alg_params = {"INPUT": name, "OUTPUT": outname, 'LAYER_NAME': name}
+                    processing.run("native:savefeatures", alg_params, context=context)
+                print("Saving %s"%(outname))
+            
+        
         # Prepare terrain, domain, and fds_case
         if export_obst:
             Terrain = OBSTTerrain
@@ -833,40 +868,6 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         )
         fds_case.save()
         
-        if DEBUG:
-            for layer_id in context.temporaryLayerStore().mapLayers():
-                layer = context.getMapLayer(layer_id)
-                name = layer.name()
-                if chid in name:
-                    outname = os.path.join(project_path,"debug_" + name)
-                else:
-                    outname = os.path.join(project_path,"debug_" + chid + "_" + name)
-                if type(layer) is QgsRasterLayer:
-                    outname = outname + '.tif'
-                    renderer = layer.renderer()
-                    provider = layer.dataProvider()
-                    pipe = QgsRasterPipe()
-                    projector = QgsRasterProjector()
-                    projector.setCrs(layer.crs(), layer.crs())
-                    print("TRYING TO WRITE %s"%(outname))
-                    if not pipe.set(provider.clone()):
-                        print("Cannot set pipe provider")
-                    if not pipe.insert(2, projector):
-                        print("Cannot set pipe projector")
-                    file_writer = QgsRasterFileWriter(outname)
-                    file_writer.Mode(1)
-                    width = layer.width()
-                    height = layer.height()
-                    layer_extent = layer.extent()
-                    layer_crs = layer.crs()
-                    
-                    error = file_writer.writeRaster(pipe, width, height, layer_extent, layer_crs)
-                else:
-                    outname = outname + '.gpkg'
-                    alg_params = {"INPUT": name, "OUTPUT": outname, 'LAYER_NAME': name}
-                    processing.run("native:savefeatures", alg_params, context=context)
-                print("Saving %s"%(outname))
-            
         if utm_fire_layer is not None:
             QgsProject.instance().removeMapLayer(utm_fire_layer.id())
             QgsProject.instance().removeMapLayer(utm_b_fire_layer.id())
