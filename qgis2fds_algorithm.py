@@ -592,6 +592,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             fds_terrain_extent_utm = terrain_to_utm_transform.transformBoundingBox(fds_terrain_extent_terrain)
         else:
             fds_terrain_extent_utm = utm_extent
+            fds_terrain_extent_terrain = None
         
         if ("tex_layer" in parameters) and (parameters['tex_layer'] is not None):
             tex_to_utm_transform = QgsCoordinateTransform(tex_layer.crs(), utm_crs, project)
@@ -733,13 +734,6 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
         
-        print("BEFORE SAMPLING FUNCTION")
-        for layer_id in context.temporaryLayerStore().mapLayers():
-            layer = context.getMapLayer(layer_id)
-            name = layer.name()
-            if ('Draped' in name) or ('Grid' in name) or ('Sampled' in name):
-                print(name)
-        
         # Get the sampling grid
         outputs["sampling_layer"] = algos.get_sampling_point_grid_layer(
             context,
@@ -753,13 +747,6 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             extent_crs=utm_crs,
             # output=parameters["sampling_layer"],  # DEBUG
         )
-        
-        print("AFTER SAMPLING FUNCTION")
-        for layer_id in context.temporaryLayerStore().mapLayers():
-            layer = context.getMapLayer(layer_id)
-            name = layer.name()
-            if ('Draped' in name) or ('Grid' in name) or ('Sampled' in name):
-                print(name)
 
         if feedback.isCanceled():
             return {}
@@ -836,6 +823,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             fire_layer=fire_layer,
             path=fds_path,
             name=chid,
+            debug=DEBUG,
         )
 
         if feedback.isCanceled():

@@ -24,6 +24,7 @@ class GEOMTerrain:
         fire_layer,
         path,
         name,
+        debug=False,
     ) -> None:
         self.feedback = feedback
         self.sampling_layer = sampling_layer
@@ -35,6 +36,7 @@ class GEOMTerrain:
         self._filename = f"{name}_terrain.bingeom"
         self._filepath = os.path.join(path, self._filename)
         self.path = path
+        self.debug = debug
 
         self._m = None
         self.min_z = 0.0
@@ -95,7 +97,7 @@ class GEOMTerrain:
         # Fill the array with point coordinates, points are listed by column
         # calc min and max z
         min_z, max_z = 1e6, -1e6
-        txt = 'ind,x,y,z\n'
+        if self.debug: txt = 'ind,x,y,z\n'
         features = self.sampling_layer.getFeatures()
         for i, f in enumerate(features):
             g = f.geometry().get()  # QgsPoint
@@ -103,23 +105,33 @@ class GEOMTerrain:
             x = g.x()
             y = g.y()
             m_tmp[i, :] = [x, y, z, 0]
-            txt = txt + '%d,%0.10f,%0.10f,%0.10f\n'%(i, x, y, z)
-        with open(os.path.join(self.path, 'sampling_layer_extract_pre_interp.csv'),'w') as f:
-            f.write(txt)
-        txt = 'ind,x,y,z\n'
+            if self.debug: txt = txt + '%d,%0.10f,%0.10f,%0.10f\n'%(i, x, y, z)
+        if self.debug:
+            with open(os.path.join(self.path, 'sampling_layer_extract_pre_interp.csv'),'w') as f:
+                f.write(txt)
+        if self.debug: txt = 'ind,x,y,z\n'
         for i in range(0, nfeatures):
             x, y, z, t = m_tmp[i, :]
             if (abs(z) <= 1e-6) or (abs(x) <= 1e-6) or (abs(y) <= 1e-6):
-                x1, y1, z1, _ = m_tmp[i-1, :]
-                x2, y2, z2, _ = m_tmp[i+1, :]
-                self.feedback.pushInfo(f"WARNING: Feature {i} may not have proper geometry (x, y, z) = {x},{y},{z}")
-                if (abs(x) <= 1e-6):
-                    x = (x1 + x2)/2
-                if (abs(y) <= 1e-6):
-                    y = (y1 + y2)/2
-                if (abs(z) <= 1e-6):
-                    z = (z1 + z2)/2
-                self.feedback.pushInfo(f"WARNING: Filling with interpolation as (x, y, z) = {x},{y},{z}")
+                skip = False
+                if i+1 < nfeatures:
+                    x1, y1, z1, _ = m_tmp[i-1, :]
+                    x2, y2, z2, _ = m_tmp[i+1, :]
+                    if (abs(x) <= 1e-6) or (abs(y) <= 1e-6):
+                        interpolate = True
+                    elif (abs(z1) <= 1e-6) or (abs(z2) <= 1e-6):
+                        interpolate = False
+                    else:
+                        interpolate = True
+                    if interpolate:
+                        self.feedback.pushInfo(f"WARNING: Feature {i} may not have proper geometry (x, y, z) = {x},{y},{z}")
+                        if (abs(x) <= 1e-6):
+                            x = (x1 + x2)/2
+                        if (abs(y) <= 1e-6):
+                            y = (y1 + y2)/2
+                        if (abs(z) <= 1e-6):
+                            z = (z1 + z2)/2
+                        self.feedback.pushInfo(f"WARNING: Filling with interpolation as (x, y, z) = {x},{y},{z}")
                 
             
             if z > max_z:
@@ -134,9 +146,10 @@ class GEOMTerrain:
             )
             if i % partial_progress == 0:
                 self.feedback.setProgress(int(i / nfeatures * 100))
-            txt = txt + '%d,%0.10f,%0.10f,%0.10f\n'%(i, x, y, z)
-        with open(os.path.join(self.path, 'sampling_layer_extract_post_interp.csv'),'w') as f:
-            f.write(txt)
+            if self.debug: txt = txt + '%d,%0.10f,%0.10f,%0.10f\n'%(i, x, y, z)
+        if self.debug:
+            with open(os.path.join(self.path, 'sampling_layer_extract_post_interp.csv'),'w') as f:
+                f.write(txt)
         self.max_z, self.min_z = max_z, min_z
         self.feedback.pushInfo(f"nfeatures {nfeatures}")
         self.feedback.pushInfo(f"nfeatures_loop1 {i}")
@@ -160,29 +173,21 @@ class GEOMTerrain:
                     self.feedback.setProgress(int(i / nfeatures * 100))
 
         # Get point column length
-        '''
-        column_len = 2
-        p0, p1 = m[0, :2], m[1, :2]
-        v0 = p1 - p0
-        for p2 in m[2:, :2]:
-            v1 = p2 - p1
-            if abs(np.dot(v0, v1) / np.linalg.norm(v0) / np.linalg.norm(v1)) < 0.9:
-                break  # end of point column
-            column_len += 1
-        '''
-        np.savetxt(os.path.join(self.path, 'debug_linear_x_values.csv'), m[:,0], delimiter=',')
-        np.savetxt(os.path.join(self.path, 'debug_linear_y_values.csv'), m[:,1], delimiter=',')
-        np.savetxt(os.path.join(self.path, 'debug_linear_z_values.csv'), m[:,2], delimiter=',')
-        np.savetxt(os.path.join(self.path, 'debug_linear_t_values.csv'), m[:,3], delimiter=',')
+        if self.debug:
+            np.savetxt(os.path.join(self.path, 'debug_linear_x_values.csv'), m[:,0], delimiter=',')
+            np.savetxt(os.path.join(self.path, 'debug_linear_y_values.csv'), m[:,1], delimiter=',')
+            np.savetxt(os.path.join(self.path, 'debug_linear_z_values.csv'), m[:,2], delimiter=',')
+            np.savetxt(os.path.join(self.path, 'debug_linear_t_values.csv'), m[:,3], delimiter=',')
         row_len = np.where(m[1:,1] > m[:-1,1])[0].shape[0] + 1
         column_len = int(nfeatures / row_len)
         # Split matrix into columns list, get np array, and transpose
         # Now points are by row
         m = np.array(np.split(m, nfeatures // column_len)).transpose(1, 0, 2)
-        np.savetxt(os.path.join(self.path, 'debug_x_values.csv'), m[:,:,0], delimiter=',')
-        np.savetxt(os.path.join(self.path, 'debug_y_values.csv'), m[:,:,1], delimiter=',')
-        np.savetxt(os.path.join(self.path, 'debug_z_values.csv'), m[:,:,2], delimiter=',')
-        np.savetxt(os.path.join(self.path, 'debug_t_values.csv'), m[:,:,3], delimiter=',')
+        if self.debug:
+            np.savetxt(os.path.join(self.path, 'debug_x_values.csv'), m[:,:,0], delimiter=',')
+            np.savetxt(os.path.join(self.path, 'debug_y_values.csv'), m[:,:,1], delimiter=',')
+            np.savetxt(os.path.join(self.path, 'debug_z_values.csv'), m[:,:,2], delimiter=',')
+            np.savetxt(os.path.join(self.path, 'debug_t_values.csv'), m[:,:,3], delimiter=',')
         # Check
         if m.shape[0] < 3 or m.shape[1] < 3:
             raise QgsProcessingException(
@@ -270,10 +275,11 @@ class GEOMTerrain:
         m = self._m
         ncenters = m.shape[0] * m.shape[1]
         partial_progress = ncenters // 100 or 1
-        np.savetxt(os.path.join(self.path, 'debug_gc_x_values.csv'), m[:,:,0], delimiter=',')
-        np.savetxt(os.path.join(self.path, 'debug_gc_y_values.csv'), m[:,:,1], delimiter=',')
-        np.savetxt(os.path.join(self.path, 'debug_gc_z_values.csv'), m[:,:,2], delimiter=',')
-        np.savetxt(os.path.join(self.path, 'debug_gc_t_values.csv'), m[:,:,3], delimiter=',')
+        if self.debug:
+            np.savetxt(os.path.join(self.path, 'debug_gc_x_values.csv'), m[:,:,0], delimiter=',')
+            np.savetxt(os.path.join(self.path, 'debug_gc_y_values.csv'), m[:,:,1], delimiter=',')
+            np.savetxt(os.path.join(self.path, 'debug_gc_z_values.csv'), m[:,:,2], delimiter=',')
+            np.savetxt(os.path.join(self.path, 'debug_gc_t_values.csv'), m[:,:,3], delimiter=',')
         # Skip last row and last col
         for ip, idxs in enumerate(np.ndindex(m.shape[0] - 1, m.shape[1] - 1)):
             i, j = idxs
@@ -355,6 +361,7 @@ class OBSTTerrain(GEOMTerrain):
         fire_layer,
         path=None,  # unused
         name=None,  # unused
+        debug=None, # unused
     ) -> None:
         self.feedback = feedback
         self.sampling_layer = sampling_layer
@@ -362,6 +369,8 @@ class OBSTTerrain(GEOMTerrain):
         self.landuse_layer = landuse_layer
         self.landuse_type = landuse_type
         self.fire_layer = fire_layer
+        self.path = path
+        self.debug = debug
 
         # Init
         self.min_z = 0.0
