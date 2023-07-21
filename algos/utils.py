@@ -191,7 +191,7 @@ def wcsToRaster(rlayer, extent, out_file):
     
     ### Raster layer from WCS
     if not rlayer.isValid():
-      print ("Layer failed to load!")
+        print ("Layer failed to load!")
 
     # Save raster
     renderer = rlayer.renderer()
@@ -221,8 +221,6 @@ def wcsToRaster(rlayer, extent, out_file):
 
     if error == QgsRasterFileWriter.NoError:
         print ("Raster was saved successfully!")
-        #layer = QgsRasterLayer(out_file, "result")
-        #QgsProject.instance().addMapLayer(layer)
     else:
         print ("Raster was not saved!")
 
@@ -333,7 +331,6 @@ def get_reprojected_raster_layer(
                 'MULTITHREADING':False,
                 'EXTRA':'',
                 'OUTPUT':output}
-    #processing.run("gdal:warpreproject", alg_params)
     
     return processing.run(
         "gdal:warpreproject",
