@@ -95,18 +95,34 @@ class GEOMTerrain:
         # calc min and max z
         min_z, max_z = 1e6, -1e6
         txt = 'ind,x,y,z\n'
-        for i, f in enumerate(self.sampling_layer.getFeatures()):
+        features = self.sampling_layer.getFeatures()
+        for i, f in enumerate(features):
             g = f.geometry().get()  # QgsPoint
-            txt = txt + '%d,%0.10f,%0.10f,%0.10f\n'%(i, g.x()-ox,g.y()-oy,g.z())
             z = g.z()
+            x = g.x()
+            y = g.y()
+            if (abs(z) <= 1e-6) and ((abs(x) <= 1e-6) or (abs(y) <= 1e-6)):
+                f1 = features[i-1]
+                f2 = features[i+1]
+                g1 = f1.geometry().get()
+                g2 = f2.geometry().get()
+                self.feedback.pushInfo(f"WARNING: Feature {i} may not have proper geometry (x, y, z) = {x},{y},{z}")
+                self.feedback.pushInfo(f"WARNING: Filling with interpolation")
+                if (abs(x) <= 1e-6):
+                    x = (g1.x() + g2.x())/2
+                if (abs(y) <= 1e-6):
+                    y = (g1.y() + g2.y())/2
+                z = (g1.z() + g2.z())/2
+                
+            txt = txt + '%d,%0.10f,%0.10f,%0.10f\n'%(i, x-ox, y-oy,z)
             if z > max_z:
                 max_z = z
             if z < min_z:
                 min_z = z
             m[i] = (
-                g.x() - ox,  # x, relative to origin
-                g.y() - oy,  # y, relative to origin
-                g.z(),  # z absolute
+                x - ox,  # x, relative to origin
+                y - oy,  # y, relative to origin
+                z,  # z absolute
                 0,  # for landuse
             )
             if i % partial_progress == 0:
