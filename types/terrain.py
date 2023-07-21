@@ -103,6 +103,10 @@ class GEOMTerrain:
             x = g.x()
             y = g.y()
             m_tmp[i, :] = [x, y, z, 0]
+            txt = txt + '%d,%0.10f,%0.10f,%0.10f\n'%(i, x, y, z)
+        with open(os.path.join(self.path, 'sampling_layer_extract_pre_interp.csv'),'w') as f:
+            f.write(txt)
+        txt = 'ind,x,y,z\n'
         for i in range(0, nfeatures):
             x, y, z, t = m_tmp[i, :]
             if (abs(z) <= 1e-6) and ((abs(x) <= 1e-6) or (abs(y) <= 1e-6)):
@@ -116,7 +120,7 @@ class GEOMTerrain:
                 z = (z1 + z2)/2
                 self.feedback.pushInfo(f"WARNING: Filling with interpolation as (x, y, z) = {x},{y},{z}")
                 
-            txt = txt + '%d,%0.10f,%0.10f,%0.10f\n'%(i, x-ox, y-oy,z)
+            
             if z > max_z:
                 max_z = z
             if z < min_z:
@@ -129,7 +133,8 @@ class GEOMTerrain:
             )
             if i % partial_progress == 0:
                 self.feedback.setProgress(int(i / nfeatures * 100))
-        with open(os.path.join(self.path, 'sampling_layer_extract.csv'),'w') as f:
+            txt = txt + '%d,%0.10f,%0.10f,%0.10f\n'%(i, x, y, z)
+        with open(os.path.join(self.path, 'sampling_layer_extract_post_interp.csv'),'w') as f:
             f.write(txt)
         self.max_z, self.min_z = max_z, min_z
         self.feedback.pushInfo(f"nfeatures {nfeatures}")
