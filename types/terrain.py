@@ -89,6 +89,7 @@ class GEOMTerrain:
         nfeatures = sampling_layer.featureCount()
         partial_progress = nfeatures // 100 or 1
         m = np.empty((nfeatures, 4))  # allocate the np array
+        m_tmp = np.empty((nfeatures, 4))  # allocate the np array
         ox, oy = self.utm_origin.x(), self.utm_origin.y()  # get origin
 
         # Fill the array with point coordinates, points are listed by column
@@ -101,18 +102,19 @@ class GEOMTerrain:
             z = g.z()
             x = g.x()
             y = g.y()
+            m_tmp[i, :] = [x, y, z, 0]
+        for i in range(0, nfeatures):
+            x, y, z, t = m_tmp[i, :]
             if (abs(z) <= 1e-6) and ((abs(x) <= 1e-6) or (abs(y) <= 1e-6)):
-                f1 = features[i-1]
-                f2 = features[i+1]
-                g1 = f1.geometry().get()
-                g2 = f2.geometry().get()
+                x1, y1, z1, _ = m_tmp[i-1, :]
+                x2, y2, z2, _ = m_tmp[i+1, :]
                 self.feedback.pushInfo(f"WARNING: Feature {i} may not have proper geometry (x, y, z) = {x},{y},{z}")
-                self.feedback.pushInfo(f"WARNING: Filling with interpolation")
                 if (abs(x) <= 1e-6):
-                    x = (g1.x() + g2.x())/2
+                    x = (x1 + x2)/2
                 if (abs(y) <= 1e-6):
-                    y = (g1.y() + g2.y())/2
-                z = (g1.z() + g2.z())/2
+                    y = (y1 + y2)/2
+                z = (z1 + z2)/2
+                self.feedback.pushInfo(f"WARNING: Filling with interpolation as (x, y, z) = {x},{y},{z}")
                 
             txt = txt + '%d,%0.10f,%0.10f,%0.10f\n'%(i, x-ox, y-oy,z)
             if z > max_z:
