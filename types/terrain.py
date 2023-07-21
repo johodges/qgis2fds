@@ -109,7 +109,7 @@ class GEOMTerrain:
         txt = 'ind,x,y,z\n'
         for i in range(0, nfeatures):
             x, y, z, t = m_tmp[i, :]
-            if (abs(z) <= 1e-6) and ((abs(x) <= 1e-6) or (abs(y) <= 1e-6)):
+            if (abs(z) <= 1e-6) or (abs(x) <= 1e-6) or (abs(y) <= 1e-6):
                 x1, y1, z1, _ = m_tmp[i-1, :]
                 x2, y2, z2, _ = m_tmp[i+1, :]
                 self.feedback.pushInfo(f"WARNING: Feature {i} may not have proper geometry (x, y, z) = {x},{y},{z}")
@@ -117,7 +117,8 @@ class GEOMTerrain:
                     x = (x1 + x2)/2
                 if (abs(y) <= 1e-6):
                     y = (y1 + y2)/2
-                z = (z1 + z2)/2
+                if (abs(z) <= 1e-6):
+                    z = (z1 + z2)/2
                 self.feedback.pushInfo(f"WARNING: Filling with interpolation as (x, y, z) = {x},{y},{z}")
                 
             
