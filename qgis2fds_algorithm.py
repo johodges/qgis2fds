@@ -27,6 +27,7 @@ from qgis.core import (
     QgsProcessingParameterDefinition,
     QgsProcessingParameterFeatureSink,
     QgsProcessingParameterBoolean,
+    QgsRasterFileWriter,
     QgsRasterLayer,
     QgsRaster,
     QgsRasterPipe,
@@ -37,6 +38,7 @@ from qgis.core import (
 )
 
 import os, sys, gc
+
 from .types import (
     utils,
     FDSCase,
@@ -352,7 +354,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         )
         self.addParameter(param)
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-        
+
         # Define parameter: addIntermediateLayersToQgis
         defaultValue, _ = project.readBoolEntry(
             "qgis2fds", "addIntermediateLayersToQgis", DEFAULTS["addIntermediateLayersToQgis"]
@@ -368,7 +370,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         param = QgsProcessingParameterBoolean("debug","debug",defaultValue=defaultValue)
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(param)
-        
+
         # Output
 
         # param = QgsProcessingParameterFeatureSink(  # DEBUG FIXME
@@ -427,14 +429,13 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         fds_path = os.path.join(project_path, fds_path)  # make abs
         
         # Establish os specific parameters directory
-        
         if sys.platform.startswith('linux'):
             pass
         elif sys.platform == 'darwin':
             os.environ["PROJ_LIB"]="/Applications/QGIS.app/Contents/Resources/proj"
         elif (sys.platform == 'win32') or (sys.platform == 'cygwin'):
             pass
-        
+
         # Get parameter for intermediate layers to QGIS
         addIntermediateLayersToQgis = self.parameterAsBool(parameters, "addIntermediateLayersToQgis", context)
         
@@ -763,6 +764,35 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
 
         if feedback.isCanceled():
             return {}
+
+        if DEBUG:
+            for layer_id in context.temporaryLayerStore().mapLayers():
+                layer = context.getMapLayer(layer_id)
+                name = layer.name()
+                if chid in name:
+                    outname = os.path.join(project_path,"debug_" + name)
+                else:
+                    outname = os.path.join(project_path,"debug_" + chid + "_" + name)
+                if type(layer) is QgsRasterLayer:
+                    outname = outname + '.tif'
+                    renderer = layer.renderer()
+                    provider = layer.dataProvider()
+                    pipe = QgsRasterPipe()
+                    projector = QgsRasterProjector()
+                    projector.setCrs(layer.crs(), layer.crs())
+                    file_writer = QgsRasterFileWriter(outname)
+                    file_writer.Mode(1)
+                    width = layer.width()
+                    height = layer.height()
+                    layer_extent = layer.extent()
+                    layer_crs = layer.crs()
+                    
+                    error = file_writer.writeRaster(pipe, width, height, layer_extent, layer_crs)
+                else:
+                    outname = outname + '.gpkg'
+                    alg_params = {"INPUT": name, "OUTPUT": outname, 'LAYER_NAME': name}
+                    processing.run("native:savefeatures", alg_params, context=context)
+                feedback.pushInfo("Saving %s"%(outname))
 
         # Prepare terrain, domain, and fds_case
         if export_obst:
