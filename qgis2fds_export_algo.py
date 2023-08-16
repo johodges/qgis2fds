@@ -51,6 +51,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         ChidParam.set(**kwargs)
         FDSPathParam.set(**kwargs)
         ExtentParam.set(**kwargs)
+        FireLayerParam.set(**kwargs)
         PixelSizeParam.set(**kwargs)
         OriginParam.set(**kwargs)
         DEMLayerParam.set(**kwargs)
@@ -127,6 +128,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         pixel_size = PixelSizeParam.get(**kwargs)
         origin = OriginParam.get(**kwargs)  # in project crs
         dem_layer = DEMLayerParam.get(**kwargs)
+        fire_layer = FireLayerParam.get(**kwargs)
         landuse_layer = LanduseLayerParam.get(**kwargs)
         landuse_type_filepath = LanduseTypeFilepathParam.get(**kwargs)
         text_filepath = TextFilepathParam.get(**kwargs)
@@ -139,7 +141,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         t_end = EndTimeParam.get(**kwargs)
         wind_filepath = WindFilepathParam.get(**kwargs)
 
-
+        print("1")
 
         # Check parameter values
 
@@ -187,12 +189,12 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         text += f"\nUTM origin: {utm_origin}"
         text += f"\nUTM extent: {utm_extent}, size: {utm_extent.xMaximum()-utm_extent.xMinimum()}x{utm_extent.yMaximum()-utm_extent.yMinimum()}m"
         feedback.setProgressText(text)
-
+        print("2")
         # Calc the interpolated DEM extent in UTM crs
         # so that the interpolation is aligned to the sampling grid
 
         idem_utm_extent = utm_extent.buffered(pixel_size / 2.0 - 0.000002)
-
+        print("3")
         # Calc clipping extent of the original DEM in DEM crs
         # so that it is enough for interpolation
 
@@ -202,11 +204,11 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         ry = abs(dem_layer.rasterUnitsPerPixelY())
         delta = max((rx, ry)) * 2.0  # cover if larger dem resolution
         clipped_dem_extent.grow(delta=delta)
-
+        print("4")
         text = f"\nidem_utm_extent: {idem_utm_extent}"
         text += f"\nclipped_dem_extent: {clipped_dem_extent}"
         feedback.setProgressText(text)
-
+        print("5")
         self._show_extent(  # FIXME
             e=utm_extent,
             c=utm_crs,
@@ -215,7 +217,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             context=context,
             feedback=feedback,
         )
-
+        print("6")
         self._show_extent(  # FIXME
             e=idem_utm_extent,
             c=utm_crs,
@@ -224,7 +226,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             context=context,
             feedback=feedback,
         )
-
+        print("7")
         self._show_extent(  # FIXME
             e=clipped_dem_extent,
             c=dem_layer.crs(),
@@ -255,7 +257,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             feedback=feedback,
             is_child_algorithm=True,
         )
-
+        print("8")
         # Check UTM sampling grid
         utm_grid_layer = context.getMapLayer(outputs["UtmGrid"]["OUTPUT"])
         if utm_grid_layer.featureCount() < 9:
@@ -287,7 +289,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             feedback=feedback,
             is_child_algorithm=True,
         )
-
+        print("9")
         feedback.setCurrentStep(4)
         if feedback.isCanceled():
             return {}
@@ -306,7 +308,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             feedback=feedback,
             is_child_algorithm=True,
         )
-
+        print("10")
         feedback.setCurrentStep(5)
         if feedback.isCanceled():
             return {}
@@ -321,6 +323,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             and parameters["UtmDemPoints"]
             or QgsProcessing.TEMPORARY_OUTPUT,
         }
+        print(alg_params)
         outputs["UtmDemPoints"] = processing.run(
             "native:reprojectlayer",
             alg_params,
@@ -328,7 +331,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             feedback=feedback,
             is_child_algorithm=True,
         )
-
+        print("11")
         feedback.setCurrentStep(6)
         if feedback.isCanceled():
             return {}
@@ -350,6 +353,8 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             and parameters["UtmInterpolatedDemLayer"]
             or QgsProcessing.TEMPORARY_OUTPUT,
         }
+        print(alg_params)
+        assert False, "Stopped"
         outputs["TinInterpolation"] = processing.run(
             "qgis:tininterpolation",
             alg_params,
@@ -357,7 +362,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             feedback=feedback,
             is_child_algorithm=True,
         )
-
+        print("12")
         feedback.setCurrentStep(7)
         if feedback.isCanceled():
             return {}
@@ -379,7 +384,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             feedback=feedback,
             is_child_algorithm=True,
         )
-
+        print("13")
         feedback.setCurrentStep(8)
         if feedback.isCanceled():
             return {}
@@ -405,11 +410,11 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             fds_grid_layer = context.getMapLayer(outputs["SampleRasterValues"]["OUTPUT"])
         else:
             fds_grid_layer = context.getMapLayer(outputs["SetZFromDem"]["OUTPUT"])
-
+        print("14")
         feedback.setCurrentStep(9)
         if feedback.isCanceled():
             return {}
-
+        
         #return results  # script end
         
         # Get landuse type
@@ -418,7 +423,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             project_path=fds_path, #project_path,
             filepath=landuse_type_filepath,
         )
-        
+        print("15")
         # Get texture
         texture = Texture(
             feedback=feedback,
@@ -430,10 +435,26 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             utm_extent=utm_extent,
             utm_crs=utm_crs,
         )
-        
-        # Add empty wind
+        print("16")
+        # Add wind
         wind = Wind(feedback=feedback, project_path=fds_path, filepath=wind_filepath)
         
+        # Get fire layer
+        fire_layer, utm_fire_layer, utm_b_fire_layer = None, None, None
+        if fire_layer is not None:
+            if fire_layer:
+                if not fire_layer.crs().isValid():
+                    raise QgsProcessingException(
+                        f"Fire layer CRS <{fire_layer.crs().description()}> is not valid, cannot proceed."
+                    )
+                utm_fire_layer, utm_b_fire_layer = algos.get_utm_fire_layers(
+                    context,
+                    feedback,
+                    fire_layer=fire_layer,
+                    destination_crs=utm_crs,
+                    pixel_size=pixel_size,
+                )
+        print("17")
         # Prepare terrain, domain, fds_case
 
         if export_obst:
@@ -446,11 +467,11 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             utm_origin=utm_origin,
             landuse_layer=landuse_layer,
             landuse_type=landuse_type,
-            fire_layer=None,
+            fire_layer=fire_layer,
             path=fds_path,
             name=chid,
         )
-
+        print("18")
         if feedback.isCanceled():
             return {}
         
@@ -465,7 +486,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             cell_size=cell_size,
             nmesh=nmesh,
         )
-
+        print("19")
         fds_case = FDSCase(
             feedback=feedback,
             path=fds_path,
@@ -481,8 +502,9 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             t_begin=t_begin,
             t_end=t_end,
         )
+        print("20")
         fds_case.save()
-
+        print("21")
         return results  # script end
 
     def name(self):

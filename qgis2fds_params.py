@@ -109,6 +109,37 @@ class ExtentParam:
         return value
 
 
+class FireLayerParam:
+    label = "fire_layer"
+    desc = "Fire layer (if set, overwrite landuse with active fire surrounding burned)"
+    default = None
+    optional = True
+
+    @classmethod
+    def set(cls, algo, config, project):
+        defaultValue, _ = project.readEntry("qgis2fds", cls.label, cls.default)
+        param = QgsProcessingParameterVectorLayer(
+            cls.label,
+            cls.desc,
+            defaultValue=defaultValue,
+            optional=cls.optional,
+        )
+        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        algo.addParameter(param)
+
+    @classmethod
+    def get(cls, algo, parameters, context, feedback, project):
+        value = None
+        if parameters.get(cls.label):
+            value = algo.parameterAsVectorLayer(parameters, cls.label, context)
+        if value and not value.crs().isValid():
+            raise QgsProcessingException(
+                f"Fire layer CRS <{value.crs().description()}> not valid, cannot proceed."
+            )
+        project.writeEntry("qgis2fds", cls.label, parameters.get(cls.label))  # protect
+        feedback.setProgressText(f"{cls.desc}: <{value}>")
+        return value
+
 class PixelSizeParam:
     label = "pixel_size"
     desc = "Desired terrain resolution (in meters)"
